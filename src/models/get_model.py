@@ -1,5 +1,5 @@
-from transformer import *
-from boxclip import BOXCLIP
+from src.models.transformer import *
+from src.models.boxclip import BOXCLIP
 
 def get_model(parameters, clip_model, categories):
 

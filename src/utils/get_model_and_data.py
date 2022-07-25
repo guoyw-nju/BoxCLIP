@@ -1,7 +1,7 @@
 import clip
-from transformer import *
-from get_model import get_model
-from get_datasets import get_datasets
+from src.models.transformer import *
+from src.models.get_model import get_model
+from src.datasets.get_datasets import get_datasets
 
 def get_model_and_data(parameters):
 

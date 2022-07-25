@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformer import *
+from src.models.transformer import *
 
 class BOXCLIP(nn.Module):
     def __init__(self, encoder, decoder, categories, device, clip_model, bbox_dim=4, latent_dim=512):

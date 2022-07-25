@@ -1,10 +1,10 @@
 import torch
-from collate_fn_coco import collate_fn_coco
-from get_model_and_data import get_model_and_data
+from src.utils.collate_fn_coco import collate_fn_coco
+from src.utils.get_model_and_data import get_model_and_data
 from tqdm import tqdm
 import time
 import os
-from parser.training import parser
+from src.parser.training import parser
 
 from torch.utils.tensorboard import SummaryWriter
 
