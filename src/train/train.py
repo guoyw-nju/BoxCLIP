@@ -1,3 +1,6 @@
+import sys
+sys.path.append('.')
+
 import torch
 from src.utils.collate_fn_coco import collate_fn_coco
 from src.utils.get_model_and_data import get_model_and_data

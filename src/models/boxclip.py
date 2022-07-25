@@ -58,7 +58,7 @@ class BOXCLIP(nn.Module):
         
         return mixed_loss, losses
         
-        
+
     def forward(self, batch):
                 
         bs, num_boxes = len(batch['bboxes']), len(batch['bboxes'][0])
