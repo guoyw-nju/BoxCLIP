@@ -7,8 +7,7 @@ def collate_fn_coco(batch):
 #     num_classes = 91
     coco_resize = 224
     
-    # device = "cuda" if torch.cuda.is_available else "cpu"
-    device = "cpu"
+    device = "cuda" if torch.cuda.is_available else "cpu"
 
     # resize_fn = transforms.Resize([coco_resize, coco_resize])
     

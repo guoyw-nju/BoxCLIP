@@ -13,8 +13,8 @@ def get_datasets(parameters, clip_preprocess):
 
     datasets = {}
     for n in ('train', 'val'):
-        datasets[n] = CocoDetection(root=root.format(n), annFile=annFile.format(n), annFile_cap=annFile_cap.format(n), transform=transforms.Compose([transforms.ToTensor()]))
-        # datasets[n] = CocoDetection(root=root.format(n), annFile=annFile.format(n), annFile_cap=annFile_cap.format(n), transform=clip_preprocess)
+        # datasets[n] = CocoDetection(root=root.format(n), annFile=annFile.format(n), annFile_cap=annFile_cap.format(n), transform=transforms.Compose([transforms.ToTensor()]))
+        datasets[n] = CocoDetection(root=root.format(n), annFile=annFile.format(n), annFile_cap=annFile_cap.format(n), transform=clip_preprocess)
 
         print(f'{n} set scale: {len(datasets[n])}')
 

@@ -31,10 +31,6 @@ def do_epoch(model, datasets, parameters, optimizer, start_epoch=1):
 
         for i, batch in enumerate(tqdm(dataloader, desc=f'Epoch {eps}')):
             
-            # if eps == start_epoch and i == 0:
-            #     with SummaryWriter(comment='boxclip') as w:
-            #         w.add_graph(model, (batch, ))
-
             optimizer.zero_grad()
             batch = model(batch)
             mixed_loss, losses = model.compute_loss(batch)
@@ -68,7 +64,7 @@ if __name__ == '__main__':
 
     # try device
     if 'device' not in parameters:
-        parameters['device'] = "cuda" if torch.cuda.is_available else "cpu"
+        parameters['device'] = "cuda" if torch.cuda.is_available else "cpu"        
 
     model, datasets = get_model_and_data(parameters)
     print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))

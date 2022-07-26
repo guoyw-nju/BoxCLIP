@@ -76,7 +76,7 @@ class BOXCLIP(nn.Module):
                 elif d == 'text':
                     d_features = None
                     for tx in batch['clip_texts']:
-                        texts = clip.tokenize(tx)
+                        texts = clip.tokenize(tx).to(self.device)
                         tx_feature = self.clip_model.encode_text(texts).mean(dim=0, keepdim=True) # (1, 512)
 
                         d_features = tx_feature if d_features == None else torch.cat((d_features, tx_feature), dim=0)
@@ -90,11 +90,22 @@ class BOXCLIP(nn.Module):
         return mixed_clip_loss, clip_losses
         
 
+    def generate(self, clip_features):
+        masks = None
+        batch = {
+            'z': clip_features, # (bs, 512)
+            'masks': masks
+        }
+
+        batch = self.decoder(batch)
+        return batch
+
+
     def forward(self, batch):
                 
         bs, num_boxes = len(batch['bboxes']), len(batch['bboxes'][0])
-        batch['bbox_feats'] = torch.zeros(bs, num_boxes, self.bbox_dim).to(batch['images'].device)
-        batch['cat_feats'] = torch.zeros(bs, num_boxes, self.latent_dim).to(batch['images'].device)
+        batch['bbox_feats'] = torch.zeros(bs, num_boxes, self.bbox_dim).to(batch['clip_images'].device)
+        batch['cat_feats'] = torch.zeros(bs, num_boxes, self.latent_dim).to(batch['clip_images'].device)
         for i in range(bs):
             for j in range(num_boxes):
                 batch['bbox_feats'][i][j] = torch.tensor(batch['bboxes'][i][j][0])
