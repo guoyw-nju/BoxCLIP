@@ -4,7 +4,7 @@ import torchvision
 import torchvision.transforms as transforms
 
 
-def get_datasets(parameters):
+def get_datasets(parameters, clip_preprocess):
 
     # load dataset
     root = '/userhome/37/ywguo/summer-intern/datasets/{}2017'
@@ -13,8 +13,8 @@ def get_datasets(parameters):
 
     datasets = {}
     for n in ('train', 'val'):
-        # datasets[n] = torchvision.datasets.CocoDetection(root.format(n), annFile.format(n), transform=transforms.Compose([transforms.ToTensor()]))
         datasets[n] = CocoDetection(root=root.format(n), annFile=annFile.format(n), annFile_cap=annFile_cap.format(n), transform=transforms.Compose([transforms.ToTensor()]))
+        # datasets[n] = CocoDetection(root=root.format(n), annFile=annFile.format(n), annFile_cap=annFile_cap.format(n), transform=clip_preprocess)
 
         print(f'{n} set scale: {len(datasets[n])}')
 

@@ -7,17 +7,22 @@ def collate_fn_coco(batch):
 #     num_classes = 91
     coco_resize = 224
     
-    device = "cuda" if torch.cuda.is_available else "cpu"
+    # device = "cuda" if torch.cuda.is_available else "cpu"
+    device = "cpu"
 
-    resize_fn = transforms.Resize([coco_resize, coco_resize])
+    # resize_fn = transforms.Resize([coco_resize, coco_resize])
     
-    images, indexs, masks = None, [], None
-    for _image, _index in batch:
+    images, indexs, masks, captions = None, [], None, []
+    for _image, _index, _caption in batch:
         _, h, w = _image.shape
         
-        if images == None: images = resize_fn(_image.unsqueeze(0))
-        else: images = torch.cat((images, resize_fn(_image.unsqueeze(0))), dim=0)
+        # if images == None: images = resize_fn(_image.unsqueeze(0))
+        # else: images = torch.cat((images, resize_fn(_image.unsqueeze(0))), dim=0)
+        if images == None: images = _image.unsqueeze(0)
+        else: images = torch.cat((images, _image.unsqueeze(0)), dim=0)
         
+        captions.append(_caption)
+
         num_obj = len(_index)
         _mask = torch.tensor([True for _ in range(min(num_boxes, num_obj))] + 
                              [False for _ in range(max(0, num_boxes-num_obj))])
@@ -62,8 +67,9 @@ def collate_fn_coco(batch):
 #         else: indexs = torch.cat((indexs, tmp.unsqueeze(0)), dim=0)
         
     data_batch = {
-        'images': images.to(device),
+        'clip_images': images.to(device),
         'bboxes': indexs,
-        'masks': masks.to(device)
+        'masks': masks.to(device),
+        'clip_texts': captions
     }
     return data_batch # (bs, 3, 224, 224) (bs, num_boxes, 95)

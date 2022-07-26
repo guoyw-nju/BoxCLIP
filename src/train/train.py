@@ -42,11 +42,7 @@ def do_epoch(model, datasets, parameters, optimizer, start_epoch=1):
             mixed_loss.backward()
             optimizer.step()
 
-            writer.add_scalars(f"Loss/Iters", {
-                'mixed_loss': mixed_loss,
-                'bbox_mse': losses['bbox_mse'],
-                'cats_cos': losses['cats_cos']
-            }, (eps-1)*num_batch + i)
+            writer.add_scalars(f"Loss/Iters", losses, (eps-1)*num_batch + i)
 
         writer.add_scalar(f"Lr/Epochs", scheduler.get_last_lr()[0], eps)
         scheduler.step()

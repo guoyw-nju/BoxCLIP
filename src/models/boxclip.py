@@ -45,18 +45,49 @@ class BOXCLIP(nn.Module):
     
         
     def compute_loss(self, batch):
-        
         mixed_loss = 0.
         losses = {}
+
         bbox_mse = self.mse_loss(batch['bbox_feats'], batch['output_bbox'])
         cats_cos = self.cosine_sim(batch['cat_feats'], batch['output_cat_feats'])
         cats_cos = (1 - cats_cos).mean()
 
-        mixed_loss = 10 * bbox_mse + cats_cos
-        losses['bbox_mse'] = 10 * bbox_mse
+        mixed_loss = bbox_mse + cats_cos
+        losses['bbox_mse'] = bbox_mse
         losses['cats_cos'] = cats_cos
-        
+
+        mixed_clip_loss, clip_losses = self.compute_clip_losses(batch)
+
+        mixed_loss += mixed_clip_loss
+        losses.update(clip_losses)
+        losses.update({'mixed_loss': mixed_loss})
+
         return mixed_loss, losses
+        
+        
+    def compute_clip_losses(self, batch):
+        mixed_clip_loss = 0.
+        clip_losses = {}
+
+        for d in ('image', 'text'):
+            with torch.no_grad():
+                if d == 'image':
+                    d_features = self.clip_model.encode_image(batch['clip_images']).float() # preprocess done in collate_fn
+                elif d == 'text':
+                    d_features = None
+                    for tx in batch['clip_texts']:
+                        texts = clip.tokenize(tx)
+                        tx_feature = self.clip_model.encode_text(texts).mean(dim=0, keepdim=True) # (1, 512)
+
+                        d_features = tx_feature if d_features == None else torch.cat((d_features, tx_feature), dim=0)
+
+            bbox_features = batch['z']
+            cos = self.cosine_sim(d_features, bbox_features)
+            cosine_loss = (1 - cos).mean()
+            clip_losses[f'{d}_cos'] = cosine_loss.item()
+            mixed_clip_loss += cosine_loss
+
+        return mixed_clip_loss, clip_losses
         
 
     def forward(self, batch):
