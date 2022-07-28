@@ -54,16 +54,16 @@ class Encoder_TRANSFORMER(nn.Module):
         
     def forward(self, batch):
          # mask: (bs, num_boxes)
-        bbox_feats, cat_feats, masks = batch['bbox_feats'], batch['cat_feats'], batch['masks']
-        bs = bbox_feats.shape[0]
+        bboxs, cat_feats, masks = batch['bboxs'], batch['cat_feats'], batch['masks']
+        bs = bboxs.shape[0]
         
-        bbox_feats = bbox_feats.permute(1, 0, 2) # (num_boxes, bs, bbox_dim)
-        bbox_feats = self.bbox_embedding(bbox_feats) # (num_boxes, bs, latent_dim)
+        bboxs = bboxs.permute(1, 0, 2) # (num_boxes, bs, bbox_dim)
+        bboxs = self.bbox_embedding(bboxs) # (num_boxes, bs, latent_dim)
         
         cat_feats = cat_feats.permute(1, 0, 2) # (num_boxes, bs, latent_dim)
         cat_feats = self.cats_embedding(cat_feats) # (bs, num_boxes, latent_dim)
         
-        x = bbox_feats + cat_feats
+        x = bboxs + cat_feats
         
         xseq = torch.cat((self.muQuery.repeat(bs, 1)[None], 
                           self.sigmaQuery.repeat(bs, 1)[None], x), axis=0)
@@ -128,7 +128,7 @@ class Decoder_TRANSFORMER(nn.Module):
         bbox_feats[~masks.T] = 0 # mask.T: (num_boxes, bs)
         cats_feats[~masks.T] = 0
         
-        batch['output_bbox'] = bbox_feats.permute(1, 0, 2) # (bs, num_boxes, 4)
+        batch['output_bboxs'] = bbox_feats.permute(1, 0, 2) # (bs, num_boxes, 4)
         batch['output_cat_feats'] = cats_feats.permute(1, 0, 2) # (bs, num_boxex, 512)
         
         return batch

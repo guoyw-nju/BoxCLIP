@@ -4,6 +4,7 @@ import os
 import os.path
 from typing import Any, Callable, Optional, Tuple, List
 
+import json
 
 class CocoDetection(VisionDataset):
     """`MS Coco Detection <https://cocodataset.org/#detection-2016>`_ Dataset.
@@ -35,27 +36,43 @@ class CocoDetection(VisionDataset):
         self.coco_caption = COCO(annFile_cap)
         self.ids = list(sorted(self.coco.imgs.keys()))
 
+        with open(annFile) as f:
+            js = json.load(f)
+            self.cats = {c['id']: c['name'] for c in js['categories']}
+
     def _load_image(self, id: int) -> Image.Image:
         path = self.coco.loadImgs(id)[0]["file_name"]
         return Image.open(os.path.join(self.root, path)).convert("RGB")
 
     def _load_target(self, id) -> List[Any]:
-        return self.coco.loadAnns(self.coco.getAnnIds(id))
+        anns = self.coco.loadAnns(self.coco.getAnnIds(id))
+        # embed category'name into the datasets
+        for ann in anns:
+            ann['category_name'] = self.cats[ann['category_id']]
+        return anns
+        # return self.coco.loadAnns(self.coco.getAnnIds(id))
 
     def _load_caption(self, id) -> List[Any]:
-        # return [ann["caption"] for ann in super()._load_target(id)]
         return [ann["caption"] for ann in self.coco_caption.loadAnns(self.coco_caption.getAnnIds(id))]
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         id = self.ids[index]
         image = self._load_image(id)
+        w, h = image.size
+
         target = self._load_target(id)
+        # normalize bbox's coordinate while maintaining the original data
+        _target = [obj.copy() for obj in target]
+        for i in range(len(_target)):
+            _target[i]['bbox'] = [_target[i]['bbox'][0]/w, _target[i]['bbox'][1]/h, 
+                                  _target[i]['bbox'][2]/w, _target[i]['bbox'][3]/h]
+
         caption = self._load_caption(id)
 
         if self.transforms is not None:
-            image, target = self.transforms(image, target)
+            image, target = self.transforms(image, target) # [Resize, clip_process]
 
-        return image, target, caption
+        return image, _target, caption
 
     def __len__(self) -> int:
         return len(self.ids)

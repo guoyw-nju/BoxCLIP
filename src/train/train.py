@@ -82,12 +82,13 @@ if __name__ == '__main__':
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         scheduler.load_state_dict(checkpoint['lr_scheduler'])
-        start_epoch = checkpoint['epoch']
+        start_epoch = checkpoint['epoch'] + 1
         print(f"Model loaded from checkpoint {parameters['checkpoint_path']}...")
 
     else:
         start_epoch = 1
         print('Train on new model...')
     
+    # print(f'Init lr: {scheduler.get_last_lr()[0]}')
     do_epoch(model=model, datasets=datasets, parameters=parameters, optimizer=optimizer, start_epoch=start_epoch)
 

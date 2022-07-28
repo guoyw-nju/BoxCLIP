@@ -10,8 +10,8 @@ def get_model_and_data(parameters):
     for p in clip_model.parameters():
         p.requires_grad = False
 
-    datasets, categories = get_datasets(parameters, clip_preprocess=clip_preprocess)
-    model = get_model(parameters, clip_model, categories)
+    datasets = get_datasets(parameters, clip_preprocess=clip_preprocess)
+    model = get_model(parameters, clip_model)
 
     return model, datasets
 

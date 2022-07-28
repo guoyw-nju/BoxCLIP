@@ -3,9 +3,9 @@ import torch.nn as nn
 from src.models.transformer import *
 
 class BOXCLIP(nn.Module):
-    def __init__(self, encoder, decoder, categories, device, clip_model, bbox_dim=4, latent_dim=512):
+    def __init__(self, encoder, decoder, device, clip_model, bbox_dim=4, latent_dim=512):
         super().__init__()
-        self.categories = categories
+        # self.categories = categories
         self.bbox_dim = bbox_dim
         self.latent_dim = latent_dim
 
@@ -20,17 +20,17 @@ class BOXCLIP(nn.Module):
         self.mse_loss = nn.MSELoss(reduction='mean')
         self.cosine_sim = nn.CosineSimilarity(dim=1, eps=1e-6)
         
-        self.zeroshot_weights = None
-        self.cats_map, text_descriptions = [], []
+        # self.zeroshot_weights = None
+        # self.cats_map, text_descriptions = [], []
         
-        for k, v in categories.items():
-            self.cats_map.append(k)
-            text_descriptions.append(v)
-        self.cats_map = torch.tensor(self.cats_map)
+        # for k, v in categories.items():
+        #     self.cats_map.append(k)
+        #     text_descriptions.append(v)
+        # self.cats_map = torch.tensor(self.cats_map)
             
-        text_tokens = clip.tokenize(text_descriptions).to(device)
-        self.zeroshot_weights = self.clip_model.encode_text(text_tokens).float() # (num_cats, 512)
-        self.zeroshot_weights /= self.zeroshot_weights.norm(dim=-1, keepdim=True)
+        # text_tokens = clip.tokenize(text_descriptions).to(device)
+        # self.zeroshot_weights = self.clip_model.encode_text(text_tokens).float() # (num_cats, 512)
+        # self.zeroshot_weights /= self.zeroshot_weights.norm(dim=-1, keepdim=True)
         
         
     def feat2cat(self, batch):
@@ -48,7 +48,7 @@ class BOXCLIP(nn.Module):
         mixed_loss = 0.
         losses = {}
 
-        bbox_mse = self.mse_loss(batch['bbox_feats'], batch['output_bbox'])
+        bbox_mse = self.mse_loss(batch['bboxs'], batch['output_bboxs'])
         cats_cos = self.cosine_sim(batch['cat_feats'], batch['output_cat_feats'])
         cats_cos = (1 - cats_cos).mean()
 
@@ -91,7 +91,7 @@ class BOXCLIP(nn.Module):
         
 
     def generate(self, clip_features):
-        masks = None
+        masks = torch.tensor([[True, True]]).to(self.device)
         batch = {
             'z': clip_features, # (bs, 512)
             'masks': masks
@@ -102,24 +102,18 @@ class BOXCLIP(nn.Module):
 
 
     def forward(self, batch):
-                
-        bs, num_boxes = len(batch['bboxes']), len(batch['bboxes'][0])
-        batch['bbox_feats'] = torch.zeros(bs, num_boxes, self.bbox_dim).to(batch['clip_images'].device)
-        batch['cat_feats'] = torch.zeros(bs, num_boxes, self.latent_dim).to(batch['clip_images'].device)
+        
+        bs, num_boxs, _ = batch['bboxs'].shape
+        batch['cat_feats'] = torch.zeros(bs, num_boxs, self.latent_dim).to(self.device)
         for i in range(bs):
-            for j in range(num_boxes):
-                batch['bbox_feats'][i][j] = torch.tensor(batch['bboxes'][i][j][0])
-                
-                cat_token = clip.tokenize(self.categories[batch['bboxes'][i][j][1]]).to(self.device)
-#                 print(self.categories[batch['bboxes'][i][j][1]])
-                with torch.no_grad():
-                    batch['cat_feats'][i][j] = self.clip_model.encode_text(cat_token)
+            cat_token = clip.tokenize(batch['cat_name'][i]).to(self.device)
+            batch['cat_feats'][i] = self.clip_model.encode_text(cat_token)
                     
         batch.update(self.encoder(batch))
         batch["z"] = batch["mu"]
         batch.update(self.decoder(batch))
         
-        batch.update(self.feat2cat(batch))
+        # batch.update(self.feat2cat(batch))
         
         return batch
     
