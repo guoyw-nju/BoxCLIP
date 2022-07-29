@@ -11,6 +11,7 @@ def add_training_options(parser):
     group.add_argument("--num_epochs", type=int, default=20, help="number of epochs of training")
     group.add_argument("--lr", type=float, default=0.0001, help="AdamW: learning rate")
     group.add_argument("--lr_gamma", type=float, default=0.5, help="for Lr step scheduler")
+    group.add_argument("--lr_step_size", type=int, default=10, help="Lr step size for scheduler")
     group.add_argument("--overfit", default=False, action="store_true", help="enable overfit training test")
     group.add_argument("--overfit_size", type=int, default=20, help="size of the overfit training set")
 
@@ -29,10 +30,10 @@ def parser():
 
     parameters = {k: v for k, v in vars(args).items()}
 
-    parameters['checkpoint_path'] = os.join(parameters['folder'], parameters['exp_name'])
+    parameters['exp_path'] = os.path.join(parameters['folder'], parameters['exp_name'])
 
-    os.makedirs(parameters['checkpoint_path'], exist_ok=True)
-    optpath = os.path.join(parameters['checkpoint_path'], "opt.yaml")
+    os.makedirs(parameters['exp_path'], exist_ok=True)
+    optpath = os.path.join(parameters['exp_path'], "opt.yaml")
     with open(optpath, 'w') as opt_file:
         yaml.dump(parameters, opt_file)
 

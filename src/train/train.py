@@ -20,9 +20,9 @@ def do_epoch(model, datasets, parameters, optimizer, start_epoch=1):
 
     model.train()
 
-    os.makedirs(parameters['checkpoint_path'], exist_ok=True)
+    os.makedirs(parameters['exp_path'], exist_ok=True)
 
-    writer = SummaryWriter(log_dir=parameters['checkpoint_path'])    
+    writer = SummaryWriter(log_dir=parameters['exp_path'])    
 
     print('Start training...')
     for eps in range(start_epoch, start_epoch + parameters['num_epochs']):
@@ -52,11 +52,12 @@ def do_epoch(model, datasets, parameters, optimizer, start_epoch=1):
             'optimizer': optimizer.state_dict(),
             'lr_scheduler': scheduler.state_dict()
         }
-        for nms in os.listdir(parameters['checkpoint_path']):
-            f_name = os.path.join(parameters['checkpoint_path'], nms)
-            if f_name.endswith('.pth.tar'): os.remove(f_name)
+        # for nms in os.listdir(parameters['checkpoint_path']):
+        #     f_name = os.path.join(parameters['checkpoint_path'], nms)
+        #     if f_name.endswith('.pth.tar'): os.remove(f_name)
 
-        torch.save(checkpoint, os.path.join(parameters['checkpoint_path'], f'checkpoint-epoch{eps}.pth.tar'))
+        if (eps % 5) == 0 or eps == start_epoch+parameters['num_epochs']-1:
+            torch.save(checkpoint, os.path.join(parameters['exp_path'], f'checkpoint-epoch{eps}.pth.tar'))
 
     
 if __name__ == '__main__':
@@ -81,14 +82,14 @@ if __name__ == '__main__':
     optimizer = torch.optim.AdamW(model.parameters(), lr=parameters['lr'])
 
     # lr scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=parameters['lr_gamma'], verbose=True)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=parameters['lr_step_size'], gamma=parameters['lr_gamma'], verbose=True)
 
     if parameters['checkpoint_path'] != None:
         checkpoint = torch.load(parameters['checkpoint_path'])
 
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        # scheduler.load_state_dict(checkpoint['lr_scheduler'])
         start_epoch = checkpoint['epoch'] + 1
         print(f"Model loaded from checkpoint {parameters['checkpoint_path']}...")
 
