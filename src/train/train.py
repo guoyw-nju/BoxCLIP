@@ -20,17 +20,18 @@ def do_epoch(model, datasets, parameters, optimizer, start_epoch=1):
 
     model.train()
 
-    checkpoint_path = './checkpoint/{}'.format(time.strftime("%m-%d-%H-%M", time.localtime()))
-    if not os.path.exists(checkpoint_path):
-        os.mkdir(checkpoint_path)
+    os.makedirs(parameters['checkpoint_path'], exist_ok=True)
 
-    writer = SummaryWriter(log_dir=checkpoint_path)    
+    writer = SummaryWriter(log_dir=parameters['checkpoint_path'])    
 
     print('Start training...')
     for eps in range(start_epoch, start_epoch + parameters['num_epochs']):
 
         for i, batch in enumerate(tqdm(dataloader, desc=f'Epoch {eps}')):
             
+            for k in batch.keys():
+                if torch.is_tensor(batch[k]): batch[k] = batch[k].to(parameters['device'])
+
             optimizer.zero_grad()
             batch = model(batch)
             mixed_loss, losses = model.compute_loss(batch)
@@ -51,11 +52,11 @@ def do_epoch(model, datasets, parameters, optimizer, start_epoch=1):
             'optimizer': optimizer.state_dict(),
             'lr_scheduler': scheduler.state_dict()
         }
-        for nms in os.listdir(checkpoint_path):
-            f_name = os.path.join(checkpoint_path, nms)
-            if f_name.endswith('.pth.tar'):
-                os.remove(f_name)
-        torch.save(checkpoint, os.path.join(checkpoint_path, f'checkpoint-epoch{eps}.pth.tar'))
+        for nms in os.listdir(parameters['checkpoint_path']):
+            f_name = os.path.join(parameters['checkpoint_path'], nms)
+            if f_name.endswith('.pth.tar'): os.remove(f_name)
+
+        torch.save(checkpoint, os.path.join(parameters['checkpoint_path'], f'checkpoint-epoch{eps}.pth.tar'))
 
     
 if __name__ == '__main__':
@@ -70,11 +71,17 @@ if __name__ == '__main__':
     print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     print('Trainable params: %.2fM' % (sum(p.numel() for _, p in model.named_parameters() if p.requires_grad) / 1000000.0))
 
+    if parameters['overfit']:
+        overfit_set = [datasets['train'][i] for i in range(parameters['overfit_size'])]
+        parameters['batch_size'] = parameters['overfit_size']
+        datasets['train'] = overfit_set
+        print(f"Overfit on set scale of {len(datasets['train'])}")
+
     # training setting
     optimizer = torch.optim.AdamW(model.parameters(), lr=parameters['lr'])
 
     # lr scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1, verbose=True)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=parameters['lr_gamma'], verbose=True)
 
     if parameters['checkpoint_path'] != None:
         checkpoint = torch.load(parameters['checkpoint_path'])
