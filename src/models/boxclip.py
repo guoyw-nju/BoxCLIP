@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import clip
 from src.models.transformer import *
 
 class BOXCLIP(nn.Module):
@@ -33,15 +34,20 @@ class BOXCLIP(nn.Module):
         # self.zeroshot_weights /= self.zeroshot_weights.norm(dim=-1, keepdim=True)
         
         
-    def feat2cat(self, batch):
+    def feat2cat(self, batch, cat_texts):
+        
+        tokens = clip.tokenize(cat_texts).to(self.device)
+        zeroshot_weights = self.clip_model.encode_text(tokens).float()
+        zeroshot_weights /= zeroshot_weights.norm(dim=-1, keepdim=True)
         
         cat_feats = batch['output_cat_feats'].clone()
         cat_feats /= cat_feats.norm(dim=-1, keepdim=True) # (bs, num_boxex, 512)
         
-        similarity = cat_feats @ self.zeroshot_weights.T # (bs, num_boxex, num_cats)
+        similarity = cat_feats @ zeroshot_weights.T # (bs, num_boxex, num_cats)
         similarity = similarity.argmax(dim=-1)
         
-        return {'output_cat': self.cats_map[similarity]}
+        return similarity
+        return {'output_cat': similarity}
     
         
     def compute_loss(self, batch):
@@ -91,7 +97,7 @@ class BOXCLIP(nn.Module):
         
 
     def generate(self, clip_features):
-        masks = torch.tensor([[True, True]]).to(self.device)
+        masks = torch.tensor([[True, True]] * clip_features.shape[0]).to(self.device)
         batch = {
             'z': clip_features, # (bs, 512)
             'masks': masks

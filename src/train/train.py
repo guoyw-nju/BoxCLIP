@@ -82,14 +82,15 @@ if __name__ == '__main__':
     optimizer = torch.optim.AdamW(model.parameters(), lr=parameters['lr'])
 
     # lr scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=parameters['lr_step_size'], gamma=parameters['lr_gamma'], verbose=True)
+    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=parameters['lr_step_size'], gamma=parameters['lr_gamma'], verbose=True)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=parameters['lr']/10)
 
     if parameters['checkpoint_path'] != None:
         checkpoint = torch.load(parameters['checkpoint_path'])
 
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        # scheduler.load_state_dict(checkpoint['lr_scheduler'])
+        scheduler.load_state_dict(checkpoint['lr_scheduler'])
         start_epoch = checkpoint['epoch'] + 1
         print(f"Model loaded from checkpoint {parameters['checkpoint_path']}...")
 
