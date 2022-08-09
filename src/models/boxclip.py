@@ -58,9 +58,9 @@ class BOXCLIP(nn.Module):
         cats_cos = self.cosine_sim(batch['cat_feats'], batch['output_cat_feats'])
         cats_cos = (1 - cats_cos).mean()
 
-        mixed_loss = bbox_mse + cats_cos
-        losses['bbox_mse'] = bbox_mse
+        losses['bbox_mse'] = bbox_mse * 100
         losses['cats_cos'] = cats_cos
+        mixed_loss = losses['bbox_mse'] + losses['cats_cos']
 
         mixed_clip_loss, clip_losses = self.compute_clip_losses(batch)
 
@@ -82,7 +82,8 @@ class BOXCLIP(nn.Module):
                 elif d == 'text':
                     d_features = None
                     for tx in batch['clip_texts']:
-                        texts = clip.tokenize(tx).to(self.device)
+                        # texts = clip.tokenize(tx).to(self.device)
+                        texts = clip.tokenize(tx[0]).to(self.device)
                         tx_feature = self.clip_model.encode_text(texts).mean(dim=0, keepdim=True) # (1, 512)
 
                         d_features = tx_feature if d_features == None else torch.cat((d_features, tx_feature), dim=0)

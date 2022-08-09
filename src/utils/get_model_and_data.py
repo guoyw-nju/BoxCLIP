@@ -13,5 +13,8 @@ def get_model_and_data(parameters):
     datasets = get_datasets(parameters, clip_preprocess=clip_preprocess)
     model = get_model(parameters, clip_model)
 
+    print('Total params: %.2fM' % (sum(p.numel() for p in model.parameters()) / 1e6))
+    print('Trainable params: %.2fM' % (sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6))
+
     return model, datasets
 
