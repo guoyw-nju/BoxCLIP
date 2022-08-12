@@ -7,22 +7,29 @@ import torch
 def add_training_options(parser):
     group = parser.add_argument_group('Training options')
 
+    # training setttings
     group.add_argument("--batch_size", type=int, default=64, help="size of the batches")
     group.add_argument("--num_epochs", type=int, default=20, help="number of epochs of training")
+
     group.add_argument("--lr", type=float, default=0.0001, help="AdamW: learning rate")
+    group.add_argument("--lr_scheduler", type=str, default=None, help="type of the lr scheduler")
     group.add_argument("--lr_gamma", type=float, default=0.5, help="for Lr step scheduler")
     group.add_argument("--lr_step_size", type=int, default=10, help="Lr step size for scheduler")
+
     group.add_argument("--overfit", default=False, action="store_true", help="enable overfit training test")
     group.add_argument("--overfit_size", type=int, default=20, help="size of the overfit training set")
-
     group.add_argument("--no_val_loss", default=False, action="store_true", help="do not draw loss curve on val set")
-
     group.add_argument("--checkpoint_step", type=int, default=5, help="save checkpoint per [step] epochs")
 
+    # model
     group.add_argument("--num_attentionLayer", type=int, default=4, help="num of attention layer of the encoder/decoder")
-    group.add_argument("--lr_scheduler", type=str, default=None, help="type of the lr scheduler")
+    # losses weight
+    group.add_argument("--clip_image_cosine", type=float, default=1.0, help="weight for clip image cosine loss")
+    group.add_argument("--clip_text_cosine", type=float, default=1.0, help="weight for clip text cosine loss")
+    group.add_argument("--bbox_mse", type=float, default=100.0, help="weight for bounding box corrdinate reconstruction mse loss")
+    group.add_argument("--cats_cos", type=float, default=1.0, help="weight for bounding box category reconstruction cosine loss")
 
-
+    # experiment settings
     group.add_argument("--folder", type=str, default="./checkpoint", help="folder to save the checkpoint")
     group.add_argument("--exp_name", type=str, help="name of the experiment")
 
@@ -42,8 +49,18 @@ def parser():
     else:
         parameters.update({'device': 'cpu'})
 
+    # losses weight
+    lambdas = {}
+    lambdas['clip_image_cosine'] = parameters['clip_image_cosine']
+    lambdas['clip_text_cosine'] = parameters['clip_text_cosine']
+    lambdas['bbox_mse'] = parameters['bbox_mse']
+    lambdas['cats_cos'] = parameters['cats_cos']
+    parameters['lambdas'] = lambdas
+    
+
     parameters['exp_path'] = os.path.join(parameters['folder'], parameters['exp_name'])
 
+    print('Training Parameters:\n', parameters)
     os.makedirs(parameters['exp_path'], exist_ok=True)
     optpath = os.path.join(parameters['exp_path'], "opt.yaml")
     with open(optpath, 'w') as opt_file:

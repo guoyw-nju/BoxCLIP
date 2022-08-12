@@ -4,17 +4,19 @@ import clip
 from src.models.transformer import *
 
 class BOXCLIP(nn.Module):
-    def __init__(self, encoder, decoder, device, clip_model, bbox_dim=4, latent_dim=512):
+    def __init__(self, encoder, decoder, device, clip_model, lambdas, bbox_dim=4, latent_dim=512):
         super().__init__()
         # self.categories = categories
         self.bbox_dim = bbox_dim
         self.latent_dim = latent_dim
 
+        self.lambdas = lambdas
+
         self.encoder = encoder
         self.decoder = decoder
         
         self.device = device
-#         self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=self.device)
+
         self.clip_model = clip_model
         assert self.clip_model.training == False  # make sure clip is frozen
         
@@ -58,8 +60,8 @@ class BOXCLIP(nn.Module):
         cats_cos = self.cosine_sim(batch['cat_feats'], batch['output_cat_feats'])
         cats_cos = (1 - cats_cos).mean()
 
-        losses['bbox_mse'] = bbox_mse * 100
-        losses['cats_cos'] = cats_cos
+        losses['bbox_mse'] = bbox_mse * self.lambdas['bbox_mse']
+        losses['cats_cos'] = cats_cos * self.lambdas['cats_cos']
         mixed_loss = losses['bbox_mse'] + losses['cats_cos']
 
         mixed_clip_loss, clip_losses = self.compute_clip_losses(batch)
@@ -91,8 +93,8 @@ class BOXCLIP(nn.Module):
             bbox_features = batch['z']
             cos = self.cosine_sim(d_features, bbox_features)
             cosine_loss = (1 - cos).mean()
-            clip_losses[f'{d}_cos'] = cosine_loss.item()
-            mixed_clip_loss += cosine_loss
+            clip_losses[f'clip_{d}_cosine'] = cosine_loss.item() * self.lambdas[f'clip_{d}_cosine']
+            mixed_clip_loss += clip_losses[f'clip_{d}_cosine']
 
         return mixed_clip_loss, clip_losses
         
