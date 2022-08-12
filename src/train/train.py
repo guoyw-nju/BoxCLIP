@@ -80,8 +80,14 @@ if __name__ == '__main__':
     optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=parameters['lr'])
 
     # lr scheduler
-    if parameters['lr_scheduler'] == 'StepLR':
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=parameters['lr_step_size'], gamma=parameters['lr_gamma'], verbose=True)
+    if parameters['lr_scheduler'] == 'ReduceLROnPlateau':
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, 
+            mode='min', 
+            patience=1,
+            verborse=True)
+            
+        # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=parameters['lr_step_size'], gamma=parameters['lr_gamma'], verbose=True)
     else:
         scheduler = None
 

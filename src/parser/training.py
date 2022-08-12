@@ -12,9 +12,7 @@ def add_training_options(parser):
     group.add_argument("--num_epochs", type=int, default=20, help="number of epochs of training")
 
     group.add_argument("--lr", type=float, default=0.0001, help="AdamW: learning rate")
-    group.add_argument("--lr_scheduler", type=str, default=None, help="type of the lr scheduler")
-    group.add_argument("--lr_gamma", type=float, default=0.5, help="for Lr step scheduler")
-    group.add_argument("--lr_step_size", type=int, default=10, help="Lr step size for scheduler")
+    group.add_argument("--lr_scheduler", type=str, default=None, choices=['ReduceLROnPlateau'], help="type of the lr scheduler")
 
     group.add_argument("--overfit", default=False, action="store_true", help="enable overfit training test")
     group.add_argument("--overfit_size", type=int, default=20, help="size of the overfit training set")
@@ -26,15 +24,14 @@ def add_training_options(parser):
     # losses weight
     group.add_argument("--clip_image_cosine", type=float, default=1.0, help="weight for clip image cosine loss")
     group.add_argument("--clip_text_cosine", type=float, default=1.0, help="weight for clip text cosine loss")
-    group.add_argument("--bbox_mse", type=float, default=100.0, help="weight for bounding box corrdinate reconstruction mse loss")
+    group.add_argument("--bbox_mse", type=float, default=1.0, help="weight for bounding box corrdinate reconstruction mse loss")
     group.add_argument("--cats_cos", type=float, default=1.0, help="weight for bounding box category reconstruction cosine loss")
-    group.add_argument("--bbox_mse_gen", type=float, default=100.0, help="weight for bounding box corrdinate reconstruction mse loss")
+    group.add_argument("--bbox_mse_gen", type=float, default=1.0, help="weight for bounding box corrdinate reconstruction mse loss")
     group.add_argument("--cats_cos_gen", type=float, default=1.0, help="weight for bounding box category reconstruction cosine loss")
 
     # experiment settings
     group.add_argument("--folder", type=str, default="./checkpoint", help="folder to save the checkpoint")
     group.add_argument("--exp_name", type=str, help="name of the experiment")
-
     group.add_argument('--checkpoint_path', type=str, help ='whether train on an existing model')
 
 
