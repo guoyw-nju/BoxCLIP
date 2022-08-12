@@ -28,6 +28,8 @@ def add_training_options(parser):
     group.add_argument("--clip_text_cosine", type=float, default=1.0, help="weight for clip text cosine loss")
     group.add_argument("--bbox_mse", type=float, default=100.0, help="weight for bounding box corrdinate reconstruction mse loss")
     group.add_argument("--cats_cos", type=float, default=1.0, help="weight for bounding box category reconstruction cosine loss")
+    group.add_argument("--bbox_mse_gen", type=float, default=100.0, help="weight for bounding box corrdinate reconstruction mse loss")
+    group.add_argument("--cats_cos_gen", type=float, default=1.0, help="weight for bounding box category reconstruction cosine loss")
 
     # experiment settings
     group.add_argument("--folder", type=str, default="./checkpoint", help="folder to save the checkpoint")
@@ -55,6 +57,8 @@ def parser():
     lambdas['clip_text_cosine'] = parameters['clip_text_cosine']
     lambdas['bbox_mse'] = parameters['bbox_mse']
     lambdas['cats_cos'] = parameters['cats_cos']
+    lambdas['bbox_mse_gen'] = parameters['bbox_mse_gen']
+    lambdas['cats_cos_gen'] = parameters['cats_cos_gen']
     parameters['lambdas'] = lambdas
     
 
