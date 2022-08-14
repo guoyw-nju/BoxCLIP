@@ -19,7 +19,7 @@ def get_datasets(parameters, clip_preprocess):
 
     if parameters['overfit']:
         overfit_set = [datasets['train'][i] for i in range(parameters['overfit_size'])]
-        parameters['batch_size'] = parameters['overfit_size']
+        # parameters['batch_size'] = parameters['overfit_size']
         datasets['train'] = overfit_set
         print(f"Overfit on set scale of {len(datasets['train'])}")
 

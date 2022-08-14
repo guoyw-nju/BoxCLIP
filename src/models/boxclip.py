@@ -60,27 +60,27 @@ class BOXCLIP(nn.Module):
         cats_cos = self.cosine_sim(batch['cat_feats'], batch['output_cat_feats'])
         cats_cos = (1 - cats_cos).mean()
 
-        losses['bbox_mse'] = bbox_mse * self.lambdas['bbox_mse']
-        losses['cats_cos'] = cats_cos * self.lambdas['cats_cos']
-        mixed_loss += losses['bbox_mse'] + losses['cats_cos']
+        losses['bbox_mse'] = bbox_mse.item() * self.lambdas['bbox_mse']
+        losses['cats_cos'] = cats_cos.item() * self.lambdas['cats_cos']
+        mixed_loss += bbox_mse * self.lambdas['bbox_mse'] + cats_cos * self.lambdas['cats_cos']
 
         # from text encoder to decoder
-        # texts = clip.tokenize([t[0] for t in batch['clip_texts']]).to(self.device)
-        # texts_feats = self.clip_model.encode_text(texts).float() # (bs, 512)
+        texts = clip.tokenize([t[0] for t in batch['clip_texts']]).to(self.device)
+        texts_feats = self.clip_model.encode_text(texts).float() # (bs, 512)
 
-        # batch_gen = self.generate(texts_feats)
-        # bbox_mse_gen = self.mse_loss(batch['bboxs'], batch_gen['output_bboxs'])
-        # cats_cos_gen = self.cosine_sim(batch['cat_feats'], batch_gen['output_cat_feats'])
-        # cats_cos_gen = (1 - cats_cos_gen).mean()
-        # losses['bbox_mse_gen'] = bbox_mse_gen * self.lambdas['bbox_mse_gen']
-        # losses['cats_cos_gen'] = cats_cos_gen * self.lambdas['cats_cos_gen']
-        # mixed_loss += losses['bbox_mse_gen'] + losses['cats_cos_gen']
+        batch_gen = self.generate(texts_feats)
+        bbox_mse_gen = self.mse_loss(batch['bboxs'], batch_gen['output_bboxs'])
+        cats_cos_gen = self.cosine_sim(batch['cat_feats'], batch_gen['output_cat_feats'])
+        cats_cos_gen = (1 - cats_cos_gen).mean()
+        losses['bbox_mse_gen'] = bbox_mse_gen.item() * self.lambdas['bbox_mse_gen']
+        losses['cats_cos_gen'] = cats_cos_gen.item() * self.lambdas['cats_cos_gen']
+        mixed_loss += bbox_mse_gen * self.lambdas['bbox_mse_gen'] + cats_cos_gen * self.lambdas['cats_cos_gen']
 
 
         mixed_clip_loss, clip_losses = self.compute_clip_losses(batch)
         mixed_loss += mixed_clip_loss
         losses.update(clip_losses)
-        losses.update({'mixed_loss': mixed_loss})
+        losses.update({'mixed_loss': mixed_loss.item()})
 
         return mixed_loss, losses
         
@@ -106,7 +106,7 @@ class BOXCLIP(nn.Module):
             cos = self.cosine_sim(d_features, bbox_features)
             cosine_loss = (1 - cos).mean()
             clip_losses[f'clip_{d}_cosine'] = cosine_loss.item() * self.lambdas[f'clip_{d}_cosine']
-            mixed_clip_loss += clip_losses[f'clip_{d}_cosine']
+            mixed_clip_loss += cosine_loss * self.lambdas[f'clip_{d}_cosine']
 
         return mixed_clip_loss, clip_losses
         

@@ -1,3 +1,4 @@
+from copy import deepcopy
 import sys
 sys.path.append('.')
 
@@ -8,7 +9,7 @@ from tqdm import tqdm
 import os
 from src.parser.training import parser
 from src.utils.eval_loss import eval_loss
-
+from copy import deepcopy
 from torch.utils.tensorboard import SummaryWriter
 
 
@@ -27,6 +28,7 @@ def do_epoch(model, datasets, parameters, optimizer, scheduler, start_epoch=1):
 
     print('Start training...')
     for eps in range(start_epoch, start_epoch + parameters['num_epochs']):
+        epoch_dict_loss = {}
 
         for i, batch in enumerate(tqdm(train_loader, desc=f'Epoch {eps}')):
             
@@ -39,16 +41,28 @@ def do_epoch(model, datasets, parameters, optimizer, scheduler, start_epoch=1):
 
             mixed_loss.backward()
             optimizer.step()
+            
+            if i == 0:
+                epoch_dict_loss = deepcopy(losses)
+            else:
+                for k in epoch_dict_loss.keys():
+                    epoch_dict_loss[k] += losses[k]
 
             if (i % 10 == 0) or (i == num_batch-1):
                 writer.add_scalars(f"Loss/Iters", losses, (eps-1)*num_batch + i)
+        
+        for k in epoch_dict_loss.keys():
+            epoch_dict_loss[k] /= len(train_loader)
+        writer.add_scalars("Loss/Epoch", epoch_dict_loss, eps)
 
         if scheduler != None:
-            writer.add_scalar(f"Lr/Epochs", scheduler.get_last_lr()[0], eps)
+            # writer.add_scalar(f"Lr/Epochs", scheduler.get_last_lr()[0], eps)
+            writer.add_scalar(f"Lr/Epochs", optimizer.state_dict()['param_groups'][0]['lr'], eps)
+            # optimizer.state_dict()['param_groups'][0]['lr']
         writer.flush()
 
         # update learning rate
-        if scheduler != None: scheduler.step()
+        if scheduler != None: scheduler.step(epoch_dict_loss['mixed_loss'])
 
         # draw loss curve on val set
         if (eps % 5) == 0 or eps == start_epoch+parameters['num_epochs']-1:
@@ -83,9 +97,13 @@ if __name__ == '__main__':
     if parameters['lr_scheduler'] == 'ReduceLROnPlateau':
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
             optimizer, 
-            mode='min', 
-            patience=1,
-            verborse=True)
+            mode='min',
+            factor=0.1,
+            min_lr=1e-7,
+            threshold=1e-6,
+            patience=100,
+            cooldown=500,
+            verbose=True)
             
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=parameters['lr_step_size'], gamma=parameters['lr_gamma'], verbose=True)
     else:
