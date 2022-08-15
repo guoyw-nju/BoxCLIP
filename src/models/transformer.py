@@ -39,6 +39,11 @@ class Encoder_TRANSFORMER(nn.Module):
         self.sigmaQuery = nn.Parameter(torch.randn(1, self.latent_dim))        
         
         # input embedding
+        self.input_embedding = nn.Sequential(
+            nn.Linear(self.bbox_dim + self.latent_dim, self.latent_dim),
+            nn.ReLU(),
+            nn.Linear(self.latent_dim, self.latent_dim)
+        )
         self.bbox_embedding = nn.Linear(self.bbox_dim, self.latent_dim)
         self.cats_embedding = nn.Linear(self.latent_dim, self.latent_dim)
         
@@ -58,12 +63,15 @@ class Encoder_TRANSFORMER(nn.Module):
         bs = bboxs.shape[0]
         
         bboxs = bboxs.permute(1, 0, 2) # (num_boxes, bs, bbox_dim)
-        bboxs = self.bbox_embedding(bboxs) # (num_boxes, bs, latent_dim)
-        
         cat_feats = cat_feats.permute(1, 0, 2) # (num_boxes, bs, latent_dim)
-        cat_feats = self.cats_embedding(cat_feats) # (bs, num_boxes, latent_dim)
         
-        x = bboxs + cat_feats
+        if False:
+            x = torch.cat((bboxs, cat_feats), axis=-1) # (num_bboxes, bs, 4 + 512)
+            x = self.input_embedding(x) # (num_bboxes, bs, 512)
+        else:
+            bboxs = self.bbox_embedding(bboxs) # (num_boxes, bs, latent_dim)
+            cat_feats = self.cats_embedding(cat_feats) # (num_boxes, bs, latent_dim)
+            x = bboxs + cat_feats
         
         xseq = torch.cat((self.muQuery.repeat(bs, 1)[None], 
                           self.sigmaQuery.repeat(bs, 1)[None], x), axis=0)
@@ -105,6 +113,11 @@ class Decoder_TRANSFORMER(nn.Module):
         self.decoder = nn.TransformerDecoder(self.decoder_layer, num_layers=self.num_layers)
 
         # final layer
+        self.output_embedding = nn.Sequential(
+            nn.Linear(self.latent_dim, self.bbox_dim + self.latent_dim),
+            nn.ReLU(),
+            nn.Linear(self.bbox_dim + self.latent_dim, self.bbox_dim + self.latent_dim)
+        )
         self.bbox_embedding = nn.Linear(self.latent_dim, self.bbox_dim)
         self.cats_embedding = nn.Linear(self.latent_dim, self.latent_dim)
         
@@ -122,13 +135,21 @@ class Decoder_TRANSFORMER(nn.Module):
         # (num_boxes, bs, latent_dim)
         output = self.decoder(tgt=queries, memory=z, tgt_key_padding_mask=~masks)
         
-        bbox_feats = self.bbox_embedding(output)
-        cats_feats = self.cats_embedding(output)
+        if False:
+            # (num_boxes, bs, 4 + 512)
+            output = self.output_embedding(output)
+
+            bbox_feats = output[:, :, :4]
+            cats_feats = output[:, :, 4:]
+        else:
+            bbox_feats = self.bbox_embedding(output)
+            cats_feats = self.cats_embedding(output)
         
         bbox_feats[~masks.T] = 0 # mask.T: (num_boxes, bs)
         cats_feats[~masks.T] = 0
         
         batch['output_bboxs'] = bbox_feats.permute(1, 0, 2) # (bs, num_boxes, 4)
+        # batch['output_bboxs'] = torch.sigmoid(bbox_feats.permute(1, 0, 2)) # (bs, num_boxes, 4)
         batch['output_cat_feats'] = cats_feats.permute(1, 0, 2) # (bs, num_boxex, 512)
         
         return batch

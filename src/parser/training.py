@@ -20,14 +20,14 @@ def add_training_options(parser):
     group.add_argument("--checkpoint_step", type=int, default=5, help="save checkpoint per [step] epochs")
 
     # model
-    group.add_argument("--num_attentionLayer", type=int, default=4, help="num of attention layer of the encoder/decoder")
+    group.add_argument("--num_attentionLayer", type=int, default=1, help="num of attention layer of the encoder/decoder")
     # losses weight
     group.add_argument("--clip_image_cosine", type=float, default=0, help="weight for clip image cosine loss")
     group.add_argument("--clip_text_cosine", type=float, default=0, help="weight for clip text cosine loss")
-    group.add_argument("--bbox_mse", type=float, default=0, help="weight for bounding box corrdinate reconstruction mse loss")
-    group.add_argument("--cats_cos", type=float, default=0, help="weight for bounding box category reconstruction cosine loss")
-    group.add_argument("--bbox_mse_gen", type=float, default=1, help="weight for bounding box corrdinate reconstruction mse loss")
-    group.add_argument("--cats_cos_gen", type=float, default=1, help="weight for bounding box category reconstruction cosine loss")
+    group.add_argument("--bbox_mse", type=float, default=1, help="weight for bounding box corrdinate reconstruction mse loss")
+    group.add_argument("--cats_cos", type=float, default=1, help="weight for bounding box category reconstruction cosine loss")
+    group.add_argument("--bbox_mse_gen", type=float, default=0, help="weight for bounding box corrdinate reconstruction mse loss")
+    group.add_argument("--cats_cos_gen", type=float, default=0, help="weight for bounding box category reconstruction cosine loss")
 
     # experiment settings
     group.add_argument("--folder", type=str, default="./checkpoint", help="folder to save the checkpoint")

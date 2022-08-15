@@ -64,8 +64,8 @@ class CocoDetection(VisionDataset):
         # normalize bbox's coordinate while maintaining the original data
         _target = [obj.copy() for obj in target]
         for i in range(len(_target)):
-            _target[i]['bbox'] = [_target[i]['bbox'][0]/w, _target[i]['bbox'][1]/h, 
-                                  _target[i]['bbox'][2]/w, _target[i]['bbox'][3]/h]
+            bbox_x, bbox_y, bbox_w, bbox_h = _target[i]['bbox']
+            _target[i]['bbox'] = [(bbox_x+bbox_w/2)/w, (bbox_y+bbox_h/2)/h, bbox_w/w, bbox_h/h]
 
         caption = self._load_caption(id)
 
