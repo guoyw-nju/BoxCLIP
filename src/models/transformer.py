@@ -128,7 +128,8 @@ class Decoder_TRANSFORMER(nn.Module):
         bbox_feats[~masks.T] = 0 # mask.T: (num_boxes, bs)
         cats_feats[~masks.T] = 0
         
-        batch['output_bboxs'] = bbox_feats.permute(1, 0, 2) # (bs, num_boxes, 4)
+        # batch['output_bboxs'] = bbox_feats.permute(1, 0, 2) # (bs, num_boxes, 4)
+        batch['output_bboxs'] = torch.sigmoid(bbox_feats.permute(1, 0, 2)) # (bs, num_boxes, 4)
         batch['output_cat_feats'] = cats_feats.permute(1, 0, 2) # (bs, num_boxex, 512)
         
         return batch
