@@ -21,7 +21,8 @@ class BOXCLIP(nn.Module):
         assert self.clip_model.training == False  # make sure clip is frozen
         
         self.mse_loss = nn.MSELoss(reduction='mean')
-        self.cosine_sim = nn.CosineSimilarity(dim=1, eps=1e-6)
+        # self.cosine_sim = nn.CosineSimilarity(dim=1, eps=1e-6)
+        self.cosine_sim = nn.CosineSimilarity(dim=-1, eps=1e-6)
         
         # self.zeroshot_weights = None
         # self.cats_map, text_descriptions = [], []
