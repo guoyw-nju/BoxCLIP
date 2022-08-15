@@ -20,7 +20,7 @@ class BOXCLIP(nn.Module):
         self.clip_model = clip_model
         assert self.clip_model.training == False  # make sure clip is frozen
         
-        self.mse_loss = nn.MSELoss(reduction='mean')
+        self.mse_loss = nn.MSELoss(reduction='none')
         # self.cosine_sim = nn.CosineSimilarity(dim=1, eps=1e-6)
         self.cosine_sim = nn.CosineSimilarity(dim=-1, eps=1e-6)
         
@@ -57,7 +57,14 @@ class BOXCLIP(nn.Module):
         mixed_loss = 0.
         losses = {}
 
-        bbox_mse = self.mse_loss(batch['bboxs'], batch['output_bboxs'])
+        # bbox_mse = self.mse_loss(batch['bboxs'], batch['output_bboxs'])
+        # cats_cos = self.cosine_sim(batch['cat_feats'], batch['output_cat_feats'])
+        # cats_cos = (1 - cats_cos).mean()
+
+        # similiar loss to YOLOv2
+        bbox_mse = 0.
+        bbox_mse += self.mse_loss(batch['bboxs'][:,:,:2], batch['output_bboxs'][:,:,:2]).sum(dim=-1).mean() # (bs, num_boxes, 2)
+        bbox_mse += self.mse_loss(torch.sqrt(batch['bboxs'][:,:,2:]), torch.sqrt(batch['output_bboxs'][:,:,2:])).sum(dim=-1).mean()
         cats_cos = self.cosine_sim(batch['cat_feats'], batch['output_cat_feats'])
         cats_cos = (1 - cats_cos).mean()
 
@@ -70,9 +77,18 @@ class BOXCLIP(nn.Module):
         texts_feats = self.clip_model.encode_text(texts).float() # (bs, 512)
 
         batch_gen = self.generate(texts_feats)
-        bbox_mse_gen = self.mse_loss(batch['bboxs'], batch_gen['output_bboxs'])
+
+        # bbox_mse_gen = self.mse_loss(batch['bboxs'], batch_gen['output_bboxs'])
+        # cats_cos_gen = self.cosine_sim(batch['cat_feats'], batch_gen['output_cat_feats'])
+        # cats_cos_gen = (1 - cats_cos_gen).mean()
+
+        # YOLOv2 Loss
+        bbox_mse_gen = 0.
+        bbox_mse_gen += self.mse_loss(batch['bboxs'][:,:,:2], batch_gen['output_bboxs'][:,:,:2]).sum(dim=-1).mean() # (bs, num_boxes, 2)
+        bbox_mse_gen += self.mse_loss(torch.sqrt(batch['bboxs'][:,:,2:]), torch.sqrt(batch_gen['output_bboxs'][:,:,2:])).sum(dim=-1).mean()
         cats_cos_gen = self.cosine_sim(batch['cat_feats'], batch_gen['output_cat_feats'])
         cats_cos_gen = (1 - cats_cos_gen).mean()
+
         losses['bbox_mse_gen'] = bbox_mse_gen.item() * self.lambdas['bbox_mse_gen']
         losses['cats_cos_gen'] = cats_cos_gen.item() * self.lambdas['cats_cos_gen']
         mixed_loss += bbox_mse_gen * self.lambdas['bbox_mse_gen'] + cats_cos_gen * self.lambdas['cats_cos_gen']

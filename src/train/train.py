@@ -100,8 +100,8 @@ if __name__ == '__main__':
             mode='min',
             factor=0.1,
             min_lr=1e-7,
-            threshold=1e-6,
-            patience=100,
+            threshold=0,
+            patience=500,
             cooldown=500,
             verbose=True)
             
