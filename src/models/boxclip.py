@@ -37,20 +37,22 @@ class BOXCLIP(nn.Module):
         # self.zeroshot_weights /= self.zeroshot_weights.norm(dim=-1, keepdim=True)
         
         
-    def feat2cat(self, batch, cat_texts):
+    def feat2cat(self, cat_feats, cat_texts):
         
         tokens = clip.tokenize(cat_texts).to(self.device)
         zeroshot_weights = self.clip_model.encode_text(tokens).float()
         zeroshot_weights /= zeroshot_weights.norm(dim=-1, keepdim=True)
         
-        cat_feats = batch['output_cat_feats'].clone()
+        cat_feats = cat_feats.clone()
         cat_feats /= cat_feats.norm(dim=-1, keepdim=True) # (bs, num_boxex, 512)
         
         similarity = cat_feats @ zeroshot_weights.T # (bs, num_boxex, num_cats)
         similarity = similarity.argmax(dim=-1)
         
-        return similarity
-        return {'output_cat': similarity}
+        out_cats = [[cat_texts[j.item()] for j in i] for i in similarity]
+
+        # return similarity
+        return {'output_cat_name': out_cats}
     
         
     def compute_loss(self, batch):
