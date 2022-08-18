@@ -41,7 +41,12 @@ class Encoder_TRANSFORMER(nn.Module):
         # input embedding
         self.bbox_embedding = nn.Linear(self.bbox_dim, self.latent_dim)
         self.cats_embedding = nn.Linear(self.latent_dim, self.latent_dim)
-        
+        self.input_embedding = nn.Sequential(
+            nn.Linear(self.bbox_dim + self.latent_dim, self.latent_dim),
+            nn.ReLU(),
+            nn.Linear(self.latent_dim, self.latent_dim)
+        )
+
         # position encoder
         self.pos_encoder = PositionalEncoding(d_model=self.latent_dim)
         # Encoder: the same configuration as MotionCLIP
@@ -58,12 +63,14 @@ class Encoder_TRANSFORMER(nn.Module):
         bs = bboxs.shape[0]
         
         bboxs = bboxs.permute(1, 0, 2) # (num_boxes, bs, bbox_dim)
-        bboxs = self.bbox_embedding(bboxs) # (num_boxes, bs, latent_dim)
-        
         cat_feats = cat_feats.permute(1, 0, 2) # (num_boxes, bs, latent_dim)
-        cat_feats = self.cats_embedding(cat_feats) # (bs, num_boxes, latent_dim)
-        
-        x = bboxs + cat_feats
+
+        # bboxs = self.bbox_embedding(bboxs) # (num_boxes, bs, latent_dim)
+        # cat_feats = self.cats_embedding(cat_feats) # (bs, num_boxes, latent_dim)
+        # x = bboxs + cat_feats
+
+        x = torch.cat((bboxs, cat_feats), axis=-1) # (num_boxes, bs, 4 + 512)
+        x = self.input_embedding(x) # (num_boxes, bs, 512)
         
         xseq = torch.cat((self.muQuery.repeat(bs, 1)[None], 
                           self.sigmaQuery.repeat(bs, 1)[None], x), axis=0)

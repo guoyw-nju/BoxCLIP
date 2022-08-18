@@ -101,8 +101,8 @@ if __name__ == '__main__':
             factor=0.1,
             min_lr=1e-7,
             threshold=0,
-            patience=500,
-            cooldown=500,
+            patience=5,
+            cooldown=5,
             verbose=True)
             
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=parameters['lr_step_size'], gamma=parameters['lr_gamma'], verbose=True)

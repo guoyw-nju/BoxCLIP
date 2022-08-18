@@ -15,6 +15,17 @@ class BOXCLIP(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
         
+        self.FCs_text = nn.Sequential(
+            nn.Linear(self.latent_dim, self.latent_dim),
+            nn.ReLU(),
+            nn.Linear(self.latent_dim, self.latent_dim),
+        )
+        self.FCs_image = nn.Sequential(
+            nn.Linear(self.latent_dim, self.latent_dim),
+            nn.ReLU(),
+            nn.Linear(self.latent_dim, self.latent_dim),
+        )
+
         self.device = device
 
         self.clip_model = clip_model
@@ -37,20 +48,22 @@ class BOXCLIP(nn.Module):
         # self.zeroshot_weights /= self.zeroshot_weights.norm(dim=-1, keepdim=True)
         
         
-    def feat2cat(self, batch, cat_texts):
+    def feat2cat(self, cat_feats, cat_texts):
         
         tokens = clip.tokenize(cat_texts).to(self.device)
         zeroshot_weights = self.clip_model.encode_text(tokens).float()
         zeroshot_weights /= zeroshot_weights.norm(dim=-1, keepdim=True)
         
-        cat_feats = batch['output_cat_feats'].clone()
+        cat_feats = cat_feats.clone()
         cat_feats /= cat_feats.norm(dim=-1, keepdim=True) # (bs, num_boxex, 512)
         
         similarity = cat_feats @ zeroshot_weights.T # (bs, num_boxex, num_cats)
         similarity = similarity.argmax(dim=-1)
         
-        return similarity
-        return {'output_cat': similarity}
+        out_cats = [[cat_texts[j.item()] for j in i] for i in similarity]
+
+        # return similarity
+        return {'output_cat_name': out_cats}
     
         
     def compute_loss(self, batch):
@@ -115,9 +128,15 @@ class BOXCLIP(nn.Module):
                     for tx in batch['clip_texts']:
                         # texts = clip.tokenize(tx).to(self.device)
                         texts = clip.tokenize(tx[0]).to(self.device)
-                        tx_feature = self.clip_model.encode_text(texts).mean(dim=0, keepdim=True) # (1, 512)
+                        tx_feature = self.clip_model.encode_text(texts).mean(dim=0, keepdim=True).float() # (1, 512)
 
                         d_features = tx_feature if d_features == None else torch.cat((d_features, tx_feature), dim=0)
+
+            # add a fc layer for latent space transformation
+            if d == 'image':
+                d_features = self.FCs_image(d_features)
+            elif d == 'text':
+                d_features = self.FCs_text(d_features)
 
             bbox_features = batch['z']
             cos = self.cosine_sim(d_features, bbox_features)
@@ -128,8 +147,13 @@ class BOXCLIP(nn.Module):
         return mixed_clip_loss, clip_losses
         
 
-    def generate(self, clip_features):
+    def generate(self, clip_features, type='text'):
         masks = torch.tensor([[True, True]] * clip_features.shape[0]).to(self.device)
+
+        if type == 'image':
+            clip_features = self.FCs_image(clip_features)
+        elif type == 'text':
+            clip_features = self.FCs_text(clip_features)
         batch = {
             'z': clip_features, # (bs, 512)
             'masks': masks
