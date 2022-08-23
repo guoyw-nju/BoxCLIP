@@ -70,6 +70,7 @@ class CocoDetection(VisionDataset):
             _target[i]['bbox'] = [(bbox_x+bbox_w/2)/w, (bbox_y+bbox_h/2)/h, bbox_w/w, bbox_h/h]
 
         caption = self._load_caption(id)
+        # caption = ['{}.'.format(' and '.join(['a ' + t['category_name'] for t in _target]))]
 
         if self.transforms is not None:
             image, target = self.transforms(image, target) # [Resize, clip_process]
