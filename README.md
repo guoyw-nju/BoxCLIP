@@ -1,3 +1,7 @@
+# align_v3
+1.  centerizing coordinate
+2.  add sigmoid activation
+
 # BoxCLIP
 To begin training:
 ```
